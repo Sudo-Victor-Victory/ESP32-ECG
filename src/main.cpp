@@ -14,8 +14,8 @@ int ecg_voltage;
 float fir_coeffs[8] = {0.1, 0.15, 0.2, 0.25, 0.25, 0.2, 0.15, 0.1};
 float input[8] = {1, 2, 3, 4, 3, 2, 1, 0};
 float output[8];
-float delay_line[8];  // delay buffer (same size as filter)
-fir_f32_t fir_filter;  // ✅ correct type
+float delay_line[8]; 
+fir_f32_t fir_filter;  
 
 void setup() {
   Serial.begin(115200);
@@ -43,11 +43,9 @@ void loop() {
   int lo_minus_val = digitalRead(lo_minus);
 
 
-    // Just a simple call to test if library functions are accessible
+    
   float input_signal[8] = {0,1,2,3,4,5,6,7};
   float output_signal[8];
-
-  // Perform FFT or other DSP operation
 
 
   if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
