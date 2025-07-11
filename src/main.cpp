@@ -43,9 +43,11 @@ void loop() {
   int lo_minus_val = digitalRead(lo_minus);
 
 
-    
+    // Just a simple call to test if library functions are accessible
   float input_signal[8] = {0,1,2,3,4,5,6,7};
   float output_signal[8];
+
+  // Perform FFT or other DSP operation
 
 
   if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
@@ -54,9 +56,8 @@ void loop() {
   } 
   else {
     ecg_voltage = analogRead(ecg_output_pin);
-    Serial.print("Analog val ");
-    Serial.print(ecg_voltage);  
-    Serial.println("");
+    Serial.print(">digitalVal:");
+    Serial.println(ecg_voltage);  
   }
 
   delay(20);
