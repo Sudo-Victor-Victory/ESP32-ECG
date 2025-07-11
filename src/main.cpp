@@ -9,7 +9,7 @@ int ecg_output_pin = 34;  // TX2
 int lo_minus = 19;    // D5
 int lo_plus = 18;     // D18
 
-int ecg_voltage;
+int digitalVal;
 
 float fir_coeffs[8] = {0.1, 0.15, 0.2, 0.25, 0.25, 0.2, 0.15, 0.1};
 float input[8] = {1, 2, 3, 4, 3, 2, 1, 0};
@@ -43,9 +43,11 @@ void loop() {
   int lo_minus_val = digitalRead(lo_minus);
 
 
-    
+    // Just a simple call to test if library functions are accessible
   float input_signal[8] = {0,1,2,3,4,5,6,7};
   float output_signal[8];
+
+  // Perform FFT or other DSP operation
 
 
   if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
@@ -53,10 +55,9 @@ void loop() {
     delay(5);
   } 
   else {
-    ecg_voltage = analogRead(ecg_output_pin);
-    Serial.print("Analog val ");
-    Serial.print(ecg_voltage);  
-    Serial.println("");
+    digitalVal = analogRead(ecg_output_pin);
+    Serial.print(">digitalVal:");
+    Serial.println(digitalVal);  
   }
 
   delay(20);
