@@ -9,7 +9,7 @@ int ecg_output_pin = 34;  // TX2
 int lo_minus = 19;    // D5
 int lo_plus = 18;     // D18
 
-int ecg_voltage;
+int digitalVal;
 
 float fir_coeffs[8] = {0.1, 0.15, 0.2, 0.25, 0.25, 0.2, 0.15, 0.1};
 float input[8] = {1, 2, 3, 4, 3, 2, 1, 0};
@@ -55,9 +55,9 @@ void loop() {
     delay(5);
   } 
   else {
-    ecg_voltage = analogRead(ecg_output_pin);
+    digitalVal = analogRead(ecg_output_pin);
     Serial.print(">digitalVal:");
-    Serial.println(ecg_voltage);  
+    Serial.println(digitalVal);  
   }
 
   delay(20);
