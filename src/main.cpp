@@ -12,7 +12,7 @@ int lo_plus = 18;     // D18
 int digitalVal;
 
 // CURRENT FIR settings:
-// sampling rate: 250 Hz, cutoff 15 Hz, Transition 20.00
+// sampling rate: 250 Hz, cutoff 20.00 Hz, Transition 15.00
 // window: hamming
 const int num_of_coe = 53;
 float fir_coeffs[num_of_coe] = { 
@@ -102,7 +102,10 @@ struct KalmanFilter {
 };
 
 // Chose 2.0 & 20.0 to reduce noise at the cost of slightly flattening the QRS.
-KalmanFilter ecg_kalman(2.0f, 20.0f);  
+float kalman_q = 2.0f;
+float kalman_r = 20.0f;
+
+KalmanFilter ecg_kalman(kalman_q, kalman_r);  
 static unsigned long last_print = 0;
 int print_delay = 20;
 
@@ -132,12 +135,13 @@ void loop() {
     dsps_fir_f32(&fir_filter, &ecg_sample, &filtered_ecg, 1);
 
     float kalman_ecg = ecg_kalman.update_k(filtered_ecg);
+    // Limit Serial output rate to prevent overwhelming the buffer at 115200 baud
     if (millis() - last_print >= print_delay) {
       Serial.printf(">filteredVal:%.2f\n", filtered_ecg);
       Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
       last_print = millis();
     }
-    }
+  }
 
   delay(4);
 }
