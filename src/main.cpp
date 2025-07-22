@@ -1,15 +1,11 @@
 #include <Arduino.h>
+#include "Kalman_Filter.h"
+#include "FIR_Filter.h"
 
-extern "C" {
-  #include "dsps_fir.h"
-  #include "dsp_common.h"
-}
 // These pins are for the ESP-WROOM-32.
 int ecg_output_pin = 34;  // TX2
 int lo_minus = 19;    // D5
 int lo_plus = 18;     // D18
-
-int digitalVal;
 
 // CURRENT FIR settings:
 // sampling rate: 250 Hz, cutoff 20.00 Hz, Transition 15.00
@@ -71,41 +67,17 @@ float fir_coeffs[num_of_coe] = {
     -0.000574906859963121,
 };
 
-fir_f32_t fir_filter;  
 float ecg_sample;
 float filtered_ecg = 0.0;
-float fir_state[num_of_coe];  
-
-struct KalmanFilter {
-  float estimate;
-  float error_cov;
-  float q; // Signal variance weight
-  float r; // Noisy measurement weight
-  float k; // Kalman gain variable
-
-
-  KalmanFilter(float q, float r) {
-    this->estimate = 0.0f;
-    this->error_cov = 1.0f;
-    this->q = q;
-    this->r = r;
-    this->k = 0.0f; 
-  }
-
-  float update_k(float ecg_measurement) {
-    error_cov += q;
-    float k = error_cov / (error_cov + r);
-    estimate += k * (ecg_measurement - estimate);
-    error_cov *= (1 - k);
-    return estimate;
-  }
-};
 
 // Chose 2.0 & 20.0 to reduce noise at the cost of slightly flattening the QRS.
 float kalman_q = 2.0f;
 float kalman_r = 20.0f;
 
-KalmanFilter ecg_kalman(kalman_q, kalman_r);  
+
+FIR_Filter fir_filter;
+KalmanFilter ecg_kalman(kalman_q, kalman_r);  // Q and R
+
 static unsigned long last_print = 0;
 int print_delay = 20;
 
@@ -117,8 +89,14 @@ void setup() {
   analogReadResolution(12);        // Uses the ESP's 12 bit ADC
   analogSetAttenuation(ADC_11db);  // Uses ESP's default ref. voltage
 
-  dsps_fir_init_f32(&fir_filter, fir_coeffs, fir_state, num_of_coe );
-  delay(1000);
+
+  // Initialize FIR filter (If it fails good luck it's hard to debug </3)
+  if (!fir_filter.init((float*)fir_coeffs)) {
+    Serial.println("FIR filter init failed. Halting.");
+    while (true) delay(1000);
+  }
+  
+  Serial.println("FIR filter initialized successfully!");
 }
 
 void loop() {
@@ -126,14 +104,12 @@ void loop() {
   int lo_minus_val = digitalRead(lo_minus);
 
   if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
-    Serial.printf("Lead detection failure: LO+ %d and LO- %d\n", lo_plus_val, lo_minus_val  );
+    Serial.printf("Lead detection failure: LO+ %d and LO- %d\n", lo_plus_val, lo_minus_val);
     delay(5);
   } 
-
   else {
     ecg_sample = (float)analogRead(ecg_output_pin);
-    dsps_fir_f32(&fir_filter, &ecg_sample, &filtered_ecg, 1);
-
+    fir_filter.process(&ecg_sample, &filtered_ecg, 1);
     float kalman_ecg = ecg_kalman.update_k(filtered_ecg);
     // Limit Serial output rate to prevent overwhelming the buffer at 115200 baud
     if (millis() - last_print >= print_delay) {
