@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "Kalman_Filter.h"
 #include "FIR_Filter.h"
+#include "ble_service.h"
 
 // These pins are for the ESP-WROOM-32.
 int ecg_output_pin = 34;  // TX2
@@ -95,8 +96,12 @@ void setup() {
     Serial.println("FIR filter init failed. Halting.");
     while (true) delay(1000);
   }
-  
   Serial.println("FIR filter initialized successfully!");
+  bool ble_initialized = initBLE();
+  if (!ble_initialized){
+    Serial.println("BLE initialization failed. Stopping. ");
+    while(true);
+  }
 }
 
 void loop() {
@@ -117,6 +122,7 @@ void loop() {
       Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
       last_print = millis();
     }
+    updateBLE(millis());
   }
 
   delay(4);
