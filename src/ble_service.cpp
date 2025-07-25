@@ -24,31 +24,38 @@ class MyServerCallbacks : public BLEServerCallbacks {
   }
 };
 
-bool initBLE() {
+BLEInitStatus initBLE() {
   Serial.println("ESP32 booting...");
   BLEDevice::init("Victor ESP32");
+
   BLEServer* pServer = BLEDevice::createServer();
+  if (!pServer){
+    Serial.println("Failed in initializing the server");
+    return BLEInitStatus::SERVER_FAILURE;
+  }
   pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService* pService = pServer->createService(SERVICE_UUID);
   if (!pService) {
     Serial.println("Failed to create BLE service");
-    return false;
+    return BLEInitStatus::SERVICE_FAILURE;
   }
+
   pCharacteristic = pService->createCharacteristic(
     CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
   );
   if (!pCharacteristic) {
     Serial.println("Failed to create BLE characteristic");
-    return false;
+    return BLEInitStatus::CHARACTERISTIC_FAILURE;
   }
+
   pCharacteristic->addDescriptor(new BLE2902());
   pService->start();
   pServer->getAdvertising()->start();
 
   Serial.println("Waiting for client connection...");
-  return true;
+  return BLEInitStatus::SUCCESS;
 }
 
 void updateBLE(unsigned long seconds) {

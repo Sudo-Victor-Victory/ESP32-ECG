@@ -97,11 +97,12 @@ void setup() {
     while (true) delay(1000);
   }
   Serial.println("FIR filter initialized successfully!");
-  bool ble_initialized = initBLE();
-  if (!ble_initialized){
-    Serial.println("BLE initialization failed. Stopping. ");
-    while(true);
+  BLEInitStatus ble_status = initBLE();
+  if (ble_status != BLEInitStatus::SUCCESS) {
+    Serial.printf("BLE initialization failed. Check logs");
+    while (true) delay(1000);
   }
+  Serial.println("BLE initialized successfully");
 }
 
 void loop() {

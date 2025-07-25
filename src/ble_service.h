@@ -4,7 +4,14 @@
 #include <Arduino.h>
 
 
-bool initBLE();
+enum class BLEInitStatus {
+  SUCCESS,
+  SERVER_FAILURE,
+  SERVICE_FAILURE,
+  CHARACTERISTIC_FAILURE
+};
+
+BLEInitStatus initBLE();
 void updateBLE(unsigned long seconds);
 extern bool deviceConnected;
 
