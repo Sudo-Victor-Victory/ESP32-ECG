@@ -5,19 +5,13 @@ FIR_Filter::FIR_Filter() {
   memset(state, 0, sizeof(state));
 }
 
-bool FIR_Filter::init(float* coeffs) {
-  if (!coeffs) {
-    Serial.println("FIR init error: null coefficients");
-    return false;
-  }
-  
-  // Initialize the FIR filter with coefficients and state buffer
+bool FIR_Filter::init() {
   int err = dsps_fir_init_f32(&filter, coeffs, state, FIR_NUM_OF_COE);
   if (err != ESP_OK) {
     Serial.printf("FIR init error: %d\n", err);
     return false;
   }
-  
+
   return true;
 }
 
