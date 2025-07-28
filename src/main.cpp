@@ -12,62 +12,6 @@ int lo_plus = 18;     // D18
 // sampling rate: 250 Hz, cutoff 20.00 Hz, Transition 15.00
 // window: hamming
 const int num_of_coe = 53;
-float fir_coeffs[num_of_coe] = { 
-    -0.000574906859963121,
-    0.000000000000000001,
-    0.000726878656656865,
-    0.001444470981603404,
-    0.001823411763234968,
-    0.001436279187495883,
-    -0.000000000000000002,
-    -0.002310616106483979,
-    -0.004680774400172320,
-    -0.005801495059961710,
-    -0.004401148062126011,
-    0.000000000000000003,
-    0.006466871282307920,
-    0.012557954337108400,
-    0.015001347272149222,
-    0.011042272216301127,
-    -0.000000000000000005,
-    -0.015648716510277744,
-    -0.030281609195214557,
-    -0.036496051465025964,
-    -0.027538264420590371,
-    0.000000000000000007,
-    0.044249959513353213,
-    0.097761326729313300,
-    0.149140033916397047,
-    0.186218067602480941,
-    0.199729417242827056,
-    0.186218067602480941,
-    0.149140033916397047,
-    0.097761326729313300,
-    0.044249959513353219,
-    0.000000000000000007,
-    -0.027538264420590371,
-    -0.036496051465025971,
-    -0.030281609195214564,
-    -0.015648716510277747,
-    -0.000000000000000005,
-    0.011042272216301129,
-    0.015001347272149230,
-    0.012557954337108400,
-    0.006466871282307920,
-    0.000000000000000003,
-    -0.004401148062126011,
-    -0.005801495059961714,
-    -0.004680774400172329,
-    -0.002310616106483979,
-    -0.000000000000000002,
-    0.001436279187495883,
-    0.001823411763234967,
-    0.001444470981603405,
-    0.000726878656656865,
-    0.000000000000000001,
-    -0.000574906859963121,
-};
-
 float ecg_sample;
 float filtered_ecg = 0.0;
 
@@ -82,6 +26,50 @@ KalmanFilter ecg_kalman(kalman_q, kalman_r);  // Q and R
 static unsigned long last_print = 0;
 int print_delay = 20;
 
+TaskHandle_t TaskECGHandle = NULL;
+TaskHandle_t TaskBLEHandle = NULL;
+// SHARED VALUE between cores. Just a test.
+volatile unsigned long currentMillis = 0;
+
+void TaskBLE(void* pvParameters) {
+  Serial.printf("[BLE Task] Running on core %d\n", xPortGetCoreID());
+  while (true) {
+    updateBLE(currentMillis / 1000);
+    vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second delay
+  }
+}
+TickType_t xLastWakeTime = xTaskGetTickCount();
+void TaskECG(void* pvParameters) {
+  Serial.printf("[ECG Task] Running on core %d\n", xPortGetCoreID());
+
+  const TickType_t xFrequency = pdMS_TO_TICKS(4); // 4ms period = 250 Hz
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  while (true) {
+    int lo_plus_val = digitalRead(lo_plus);
+    int lo_minus_val = digitalRead(lo_minus);
+
+    if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
+      Serial.printf("Lead detection failure: LO+ %d and LO- %d\n", lo_plus_val, lo_minus_val);
+      delay(5);  
+    } 
+    else {
+      ecg_sample = (float)analogRead(ecg_output_pin);
+      fir_filter.process(&ecg_sample, &filtered_ecg, 1);
+      float kalman_ecg = ecg_kalman.update_k(filtered_ecg);
+
+      if (millis() - last_print >= print_delay) {
+        Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
+        last_print = millis();
+      }
+
+      currentMillis = millis();
+    }
+
+    vTaskDelayUntil(&xLastWakeTime, xFrequency);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(lo_minus, INPUT);
@@ -92,39 +80,30 @@ void setup() {
 
 
   // Initialize FIR filter (If it fails good luck it's hard to debug </3)
-  if (!fir_filter.init((float*)fir_coeffs)) {
+  if (!fir_filter.init()) {
     Serial.println("FIR filter init failed. Halting.");
     while (true) delay(1000);
   }
   Serial.println("FIR filter initialized successfully!");
   BLEInitStatus ble_status = initBLE();
   if (ble_status != BLEInitStatus::SUCCESS) {
-    Serial.printf("BLE initialization failed. Check logs");
-    while (true) delay(1000);
+    Serial.println("BLE initialization failed. Halting.");
+    while (true) {
+      delay(1000);
+    }   
   }
-  Serial.println("BLE initialized successfully");
+
+  // Pins ECG processing to Core 1
+  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, NULL, 1, &TaskECGHandle, 1);
+  vTaskSuspend(TaskECGHandle);  
+
+  // Pins BLE processing to Core 0
+  xTaskCreatePinnedToCore(TaskBLE, "BLETask", 4096, NULL, 1, &TaskBLEHandle, 0);
+  
+  Serial.println("All setup complete. Resuming ECG task...");
+  vTaskResume(TaskECGHandle);
 }
 
 void loop() {
-  int lo_plus_val = digitalRead(lo_plus);
-  int lo_minus_val = digitalRead(lo_minus);
 
-  if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
-    Serial.printf("Lead detection failure: LO+ %d and LO- %d\n", lo_plus_val, lo_minus_val);
-    delay(5);
-  } 
-  else {
-    ecg_sample = (float)analogRead(ecg_output_pin);
-    fir_filter.process(&ecg_sample, &filtered_ecg, 1);
-    float kalman_ecg = ecg_kalman.update_k(filtered_ecg);
-    // Limit Serial output rate to prevent overwhelming the buffer at 115200 baud
-    if (millis() - last_print >= print_delay) {
-      Serial.printf(">filteredVal:%.2f\n", filtered_ecg);
-      Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
-      last_print = millis();
-    }
-    updateBLE(millis());
-  }
-
-  delay(4);
 }
