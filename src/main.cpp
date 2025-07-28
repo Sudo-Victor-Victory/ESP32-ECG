@@ -84,7 +84,7 @@ void setup() {
     Serial.println("FIR filter init failed. Halting.");
     while (true) delay(1000);
   }
-
+  Serial.println("FIR filter initialized successfully!");
   BLEInitStatus ble_status = initBLE();
   if (ble_status != BLEInitStatus::SUCCESS) {
     Serial.println("BLE initialization failed. Halting.");
