@@ -31,6 +31,7 @@ EcgSharedValues sharedValues = {
 
 TaskHandle_t TaskECGHandle = NULL;
 TaskHandle_t TaskBLEHandle = NULL;
+QueueHandle_t ble_queue = NULL;
 
 void setup() {
   Serial.begin(115200);
@@ -55,6 +56,13 @@ void setup() {
     while (true) {
       delay(1000);
     }   
+  }
+  ble_queue = xQueueCreate(QUEUE_LENGTH, QUEUE_ITEM_SIZE);
+  if (ble_queue == NULL) {
+    Serial.println("Failed to create ECG queue. Halting.");
+    while (true) {
+      delay(1000);
+    } 
   }
   startTasks(&sharedValues);
 }

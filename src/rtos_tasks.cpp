@@ -72,6 +72,8 @@ void TaskECG(void* pvParameters) {
       }
 
       currentMillis = millis();
+      // Converts a 32 bit float into a 16 bit int. May modify ecg_sample's type.
+      uint16_t converted_sample = (uint16_t)(kalman_ecg * 1000);
     }
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
