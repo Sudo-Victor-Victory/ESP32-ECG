@@ -11,5 +11,8 @@ extern TaskHandle_t TaskBLEHandle;
 extern volatile unsigned long currentMillis;
 extern QueueHandle_t ble_queue;
 
+void TaskBLE(void* pvParameters);
+void TaskECG(void* pvParameters);
+
 void startTasks(EcgSharedValues* sharedValues);  // start both ECG + BLE tasks
 #endif

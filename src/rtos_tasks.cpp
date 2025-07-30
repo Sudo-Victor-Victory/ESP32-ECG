@@ -25,13 +25,14 @@ int print_delay = 20;
 
 void startTasks(EcgSharedValues* sharedValues){
 // Pins ECG processing to Core 1
-  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, &sharedValues, 1, &TaskECGHandle, 1);
+  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, sharedValues, 1, &TaskECGHandle, 1);
   vTaskSuspend(TaskECGHandle);  
 
   // Pins BLE processing to Core 0
-  xTaskCreatePinnedToCore(TaskBLE, "BLETask", 4096,  &sharedValues, 1, &TaskBLEHandle, 0);
+  xTaskCreatePinnedToCore(TaskBLE, "BLETask", 4096,  sharedValues, 1, &TaskBLEHandle, 0);
   
   Serial.println("All setup complete. Resuming ECG task...");
+  delay(100);  // Required to give time for pin setup
   vTaskResume(TaskECGHandle);
 }
 
@@ -42,6 +43,11 @@ void TaskBLE(void* pvParameters) {
   while (true) {
     updateBLE(currentMillis / 1000);
     vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second delay
+  }
+
+  uint16_t ecg_value;
+  if (xQueueReceive(ble_queue, &ecg_value, 0) == pdTRUE) {
+    Serial.printf("[BLE Task] ECG value sent: %u\n", ecg_value);
   }
 }
 
@@ -74,6 +80,11 @@ void TaskECG(void* pvParameters) {
       currentMillis = millis();
       // Converts a 32 bit float into a 16 bit int. May modify ecg_sample's type.
       uint16_t converted_sample = (uint16_t)(kalman_ecg * 1000);
+      if( xQueueSend(ble_queue, &converted_sample, 0) != pdTRUE) {
+            // Queue full, handle overflow here if needed
+            Serial.println("ECG queue full! Dropping sample.");
+        }
+
     }
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
