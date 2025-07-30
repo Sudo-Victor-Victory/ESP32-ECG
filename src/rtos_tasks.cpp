@@ -40,17 +40,24 @@ void startTasks(EcgSharedValues* sharedValues){
 
 void TaskBLE(void* pvParameters) {
   Serial.printf("[BLE Task] Running on core %d\n", xPortGetCoreID());
-  while (true) {
-    updateBLE(currentMillis / 1000);
-    vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second delay
-  }
 
-  uint16_t ecg_value;
-  if (xQueueReceive(ble_queue, &ecg_value, 0) == pdTRUE) {
-    Serial.printf("[BLE Task] ECG value sent: %u\n", ecg_value);
+  while (true) {
+    uint16_t ecg_value;
+
+    // Dequeue all available samples without waiting
+    while (xQueueReceive(ble_queue, &ecg_value, 0) == pdTRUE) {
+      Serial.printf("[BLE Task] ECG value sent: %u\n", ecg_value);
+      // Here, you would call your BLE send function with ecg_value
+      // e.g. sendECGOverBLE(ecg_value);
+    }
+
+    // Update BLE every second (or adjust as needed)
+    updateBLE(currentMillis / 1000);
+
+    // Sleep a bit to not hog CPU but short enough to keep queue clear
+    vTaskDelay(pdMS_TO_TICKS(50)); // 50ms or tune this
   }
 }
-
 
 void TaskECG(void* pvParameters) {
     EcgSharedValues* shared = static_cast<EcgSharedValues*>(pvParameters);
