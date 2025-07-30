@@ -13,7 +13,6 @@ const int lo_plus = 18;         // D18
 // CURRENT FIR settings:
 // sampling rate: 250 Hz, cutoff 20.00 Hz, Transition 15.00, # of coefficients = 53
 // window: hamming
-float ecg_sample;
 
 FIR_Filter fir_filter;
 
@@ -31,10 +30,12 @@ EcgSharedValues sharedValues = {
 
 TaskHandle_t TaskECGHandle = NULL;
 TaskHandle_t TaskBLEHandle = NULL;
+QueueHandle_t ble_queue = NULL;
 
 void setup() {
   Serial.begin(115200);
-
+  pinMode(lo_plus, INPUT);
+  pinMode(lo_minus, INPUT);
   analogReadResolution(12);        // Uses the ESP's 12 bit ADC
   analogSetAttenuation(ADC_11db);  // Uses ESP's default ref. voltage
 
@@ -55,6 +56,13 @@ void setup() {
     while (true) {
       delay(1000);
     }   
+  }
+  ble_queue = xQueueCreate(QUEUE_LENGTH, QUEUE_ITEM_SIZE);
+  if (ble_queue == NULL) {
+    Serial.println("Failed to create ECG queue. Halting.");
+    while (true) {
+      delay(1000);
+    } 
   }
   startTasks(&sharedValues);
 }
