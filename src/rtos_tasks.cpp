@@ -4,21 +4,11 @@
 #include "ble_service.h"
 
 
-// These pins are for the ESP-WROOM-32.
-
-TickType_t xLastWakeTime = xTaskGetTickCount();
-
-
 // SHARED VALUE between cores. Just a test.
 volatile unsigned long currentMillis = 0;
+
 float ecg_sample;
-
-// Chose 2.0 & 20.0 to reduce noise at the cost of slightly flattening the QRS.
-
-
-
 float filtered_ecg = 0.0;
-
 
 static unsigned long last_print = 0;
 int print_delay = 20;
@@ -43,18 +33,15 @@ void TaskBLE(void* pvParameters) {
 
   while (true) {
     uint16_t ecg_value;
-
-    // Dequeue all available samples without waiting
+    // Dequeues everything without blocking the queue
     while (xQueueReceive(ble_queue, &ecg_value, 0) == pdTRUE) {
       Serial.printf("[BLE Task] ECG value sent: %u\n", ecg_value);
-      // Here, you would call your BLE send function with ecg_value
-      // e.g. sendECGOverBLE(ecg_value);
     }
 
     // Update BLE every second (or adjust as needed)
     updateBLE(currentMillis / 1000);
 
-    // Sleep a bit to not hog CPU but short enough to keep queue clear
+    // 50 ticks was chosen to be 20x faster than TaskECG's send rate. TEMPORARY.
     vTaskDelay(pdMS_TO_TICKS(50)); // 50ms or tune this
   }
 }
