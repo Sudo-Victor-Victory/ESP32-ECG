@@ -6,7 +6,6 @@
 
 
 // SHARED VALUE between cores. Just a test.
-volatile unsigned long currentMillis = 0;
 float ecg_sample;
 float filtered_ecg = 0.0;
 
@@ -37,8 +36,7 @@ void TaskBLE(void* pvParameters) {
       Serial.printf("[BLE Task] ECG value sent: %u\n", ecg_value);
     }
 
-    // Update BLE every second (or adjust as needed)
-    updateBLE(currentMillis / 1000);
+    updateBLE(ecg_value);
 
     // 50 ticks was chosen to allow the BLE task time to see data before TaskECG could flood the queue.  
     vTaskDelay(pdMS_TO_TICKS(50));
@@ -69,8 +67,6 @@ void TaskECG(void* pvParameters) {
         Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
         last_print = millis();
       }
-
-      currentMillis = millis();
       // Converts a 32 bit float into a 16 bit int. May modify ecg_sample's type.
       uint16_t converted_sample = (uint16_t)(kalman_ecg * 1000);
       if( xQueueSend(ble_queue, &converted_sample, 0) != pdTRUE) {
