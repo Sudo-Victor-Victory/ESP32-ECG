@@ -12,7 +12,7 @@ enum class BLEInitStatus {
 };
 
 BLEInitStatus initBLE();
-void updateBLE(unsigned long seconds);
+void updateBLE(uint16_t ecg_data);
 extern bool deviceConnected;
 
 #endif

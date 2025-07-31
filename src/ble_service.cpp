@@ -96,9 +96,9 @@ BLEInitStatus initBLE() {
   return BLEInitStatus::SUCCESS;
 }
 
-void updateBLE(unsigned long seconds) {
+void updateBLE(uint16_t ecg_data) {
   if (deviceConnected && ecg_characteristic) {
-    String msg = "Uptime: " + String(seconds) + "s";
+    String msg = "ECG data: " + String(ecg_data);
     ecg_characteristic->setValue(msg.c_str());
     ecg_characteristic->notify();
     Serial.println(msg);
