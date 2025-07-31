@@ -73,7 +73,7 @@ BLEInitStatus initBLE() {
     BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
   );
   if (!conn_status_characteristic) {
-    Serial.println("Failed to create ECG characteristic");
+    Serial.println("Failed to create Connection Status characteristic");
     return BLEInitStatus::CHARACTERISTIC_FAILURE;
   }
 
