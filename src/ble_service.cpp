@@ -7,8 +7,8 @@
 #define ECG_SERVICE_UUID        "b64cfb1e-045c-4975-89d6-65949bcb35aa"
 #define ECG_CHAR_UUID           "33737322-fb5c-4a6f-a4d9-e41c1b20c30d"
 
-#define STATUS_SERVICE_UUID     "0000ABCD-0000-1000-8000-00805F9B34FB"
-#define STATUS_CHAR_UUID        "0000ABCE-0000-1000-8000-00805F9B34FB"
+#define STATUS_SERVICE_UUID     "5bd3b4b0-f359-474c-8f0c-c92d7acc654d"
+#define STATUS_CHAR_UUID        "9fcc05ea-2c47-44e6-b776-ebcda7aedd50"
 
 BLECharacteristic* ecg_characteristic = nullptr;
 BLECharacteristic* conn_status_characteristic = nullptr;
