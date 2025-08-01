@@ -96,11 +96,10 @@ BLEInitStatus initBLE() {
   return BLEInitStatus::SUCCESS;
 }
 
-void updateBLE(uint16_t ecg_data) {
+void updateBLE(uint8_t* ecg_data, int data_size) {
   if (deviceConnected && ecg_characteristic) {
-    String msg = "ECG data: " + String(ecg_data);
-    ecg_characteristic->setValue(msg.c_str());
+    ecg_characteristic->setValue(ecg_data, data_size);
     ecg_characteristic->notify();
-    Serial.println(msg);
+    Serial.printf("Sent ECG batch (%d bytes)\n", data_size);
   }
 }
