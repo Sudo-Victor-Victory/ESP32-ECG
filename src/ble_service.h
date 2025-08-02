@@ -12,7 +12,8 @@ enum class BLEInitStatus {
 };
 
 BLEInitStatus initBLE();
-void updateBLE(uint16_t ecg_data);
+// Used an uint8_t to send the data over as binary. 
+void updateBLE(uint8_t* ecg_data, int data_size);
 extern bool deviceConnected;
 
 #endif
