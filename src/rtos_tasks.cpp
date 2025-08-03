@@ -30,16 +30,22 @@ void TaskBLE(void* pvParameters) {
   Serial.printf("[BLE Task] Running on core %d\n", xPortGetCoreID());
   ECGDataBatch dequeued_ecg_data;
   while (true) {
+    // Prevents task from further dequeueing any data until a client is connected.
+    if (!deviceConnected) {
+      Serial.println("[BLE Task] No device connected. Halting.");
+      vTaskDelay(pdMS_TO_TICKS(100)); 
+      continue;
+    }
     uint16_t ecg_value;
     if (xQueueReceive(ble_queue, &dequeued_ecg_data, portMAX_DELAY) == pdTRUE) {
       // Send full struct (samples + timestamp) as binary. 
       updateBLE((uint8_t*)&dequeued_ecg_data, sizeof(dequeued_ecg_data));  
     
-      Serial.printf("[BLE Task] Sent batch with timestamp: %lu\n", dequeued_ecg_data.timestamp);
+      Serial.printf("[BLE Task] Dequeued RTOS queue starting at time: %lu\n", dequeued_ecg_data.timestamp);
     }
 
-    // 50 ticks was chosen to allow the BLE task time to see data before TaskECG could flood the queue.  
-    vTaskDelay(pdMS_TO_TICKS(50));
+    // 10 ticks was chosen to give the bluetooth chip space to send 10 batches every 10 ms, and possibly sent heart rate data.
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -73,11 +79,17 @@ void TaskECG(void* pvParameters) {
       // Converts a 32 bit float into a 16 bit int. May modify ecg_sample's type.
       uint16_t converted_sample = (uint16_t)(kalman_ecg * 1000);
       ecg_batch.ecg_samples[batch_index++] = converted_sample;
-
       if (batch_index >= ECG_BATCH_SIZE) {
         ecg_batch.timestamp = millis();  // Timestamp for charting
-        if (xQueueSend(ble_queue, &ecg_batch, 0) != pdTRUE) {
-          Serial.println("ECG queue full! Dropping batch.");
+        if(deviceConnected){
+          if (xQueueSend(ble_queue, &ecg_batch, 0) != pdTRUE) {
+            Serial.println("ECG queue full! Dropping batch.");
+          }
+        }
+        else {
+          Serial.println("[ECG Task] No device connected. Will store the data (IMPLEMENT LATER)");
+          // Call some function to save the ECG data to a form of persistent storage.
+          vTaskDelay(pdMS_TO_TICKS(100)); 
         }
         batch_index = 0;
       }
