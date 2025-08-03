@@ -14,8 +14,7 @@ BLECharacteristic* ecg_characteristic = nullptr;
 BLECharacteristic* conn_status_characteristic = nullptr;
 
 BLEServer* pServer = nullptr;
-bool deviceConnected = false;
-
+volatile bool deviceConnected = false;
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) override {
