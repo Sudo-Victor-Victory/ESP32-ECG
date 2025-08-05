@@ -76,11 +76,11 @@ BLEInitStatus initBLE() {
     return BLEInitStatus::CHARACTERISTIC_FAILURE;
   }
 
-  // Start service and enable notifications of data
-  ecgService->start();
-  statusService->start();
+// Start service and enable notifications of data
   ecg_characteristic->addDescriptor(new BLE2902());
   conn_status_characteristic->addDescriptor(new BLE2902());
+  ecgService->start();
+  statusService->start();
 
   // Begins advertising 
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
