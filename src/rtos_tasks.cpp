@@ -74,7 +74,7 @@ void TaskECG(void* pvParameters) {
       }
       ecg_batch.ecg_samples[batch_index++] = converted_sample;
       if (batch_index >= ECG_BATCH_SIZE) {
-        ecg_batch.timestamp = millis();  // Timestamp for charting
+        ecg_batch.timestamp = xTaskGetTickCount() * portTICK_PERIOD_MS;  // Timestamp for charting
         if(deviceConnected){
           if (xQueueSend(ble_queue, &ecg_batch, 0) != pdTRUE) {
             Serial.println("ECG queue full! Dropping batch.");
