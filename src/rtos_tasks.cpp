@@ -48,7 +48,7 @@ void TaskECG(void* pvParameters) {
   EcgSharedValues* shared = static_cast<EcgSharedValues*>(pvParameters);
   Serial.printf("[ECG Task] Running on core %d\n", xPortGetCoreID());
 
-  const TickType_t xFrequency = pdMS_TO_TICKS(4);  // 250Hz
+  const TickType_t xFrequency = pdMS_TO_TICKS(4);  // 4ms period = 250 Hz
   TickType_t xLastWakeTime = xTaskGetTickCount(); 
   int batch_index = 0;
   ECGDataBatch ecg_batch;
