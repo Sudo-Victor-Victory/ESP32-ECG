@@ -11,13 +11,13 @@ int print_delay = 20;
 
 void startTasks(EcgSharedValues* sharedValues){
 // Pins ECG processing to Core 1
-  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, sharedValues, 1, &TaskECGHandle, 1);
+  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, sharedValues, 2, &TaskECGHandle, 1);
   vTaskSuspend(TaskECGHandle);  
 
   // Pins BLE processing to Core 0
   xTaskCreatePinnedToCore(TaskBLE, "BLETask", 4096,  sharedValues, 1, &TaskBLEHandle, 0);
   
-  Serial.println("All setup complete. Resuming ECG task...");
+  // Serial.println("All setup complete. Resuming ECG task...");
   vTaskDelay(pdMS_TO_TICKS(100)); // Required to give time for pin setup
   vTaskResume(TaskECGHandle);
 
