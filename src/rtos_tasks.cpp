@@ -11,13 +11,13 @@ int print_delay = 20;
 
 void startTasks(EcgSharedValues* sharedValues){
 // Pins ECG processing to Core 1
-  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, sharedValues, 1, &TaskECGHandle, 1);
+  xTaskCreatePinnedToCore(TaskECG, "ECGTask", 4096, sharedValues, 2, &TaskECGHandle, 1);
   vTaskSuspend(TaskECGHandle);  
 
   // Pins BLE processing to Core 0
   xTaskCreatePinnedToCore(TaskBLE, "BLETask", 4096,  sharedValues, 1, &TaskBLEHandle, 0);
   
-  Serial.println("All setup complete. Resuming ECG task...");
+  // Serial.println("All setup complete. Resuming ECG task...");
   vTaskDelay(pdMS_TO_TICKS(100)); // Required to give time for pin setup
   vTaskResume(TaskECGHandle);
 
@@ -45,7 +45,6 @@ void TaskBLE(void* pvParameters) {
 }
 
 void TaskECG(void* pvParameters) {
-  static uint32_t baseTime = 0;
   EcgSharedValues* shared = static_cast<EcgSharedValues*>(pvParameters);
   Serial.printf("[ECG Task] Running on core %d\n", xPortGetCoreID());
 
@@ -75,10 +74,7 @@ void TaskECG(void* pvParameters) {
       }
       ecg_batch.ecg_samples[batch_index++] = converted_sample;
       if (batch_index >= ECG_BATCH_SIZE) {
-        if (baseTime == 0) {
-          baseTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
-        }
-        ecg_batch.timestamp = (xTaskGetTickCount() * portTICK_PERIOD_MS) - baseTime;
+        ecg_batch.timestamp = xTaskGetTickCount() * portTICK_PERIOD_MS;  // Timestamp for charting
         if(deviceConnected){
           if (xQueueSend(ble_queue, &ecg_batch, 0) != pdTRUE) {
             Serial.println("ECG queue full! Dropping batch.");
