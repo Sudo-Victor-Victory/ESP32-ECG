@@ -45,6 +45,7 @@ void TaskBLE(void* pvParameters) {
 }
 
 void TaskECG(void* pvParameters) {
+  static uint32_t baseTime = 0;
   EcgSharedValues* shared = static_cast<EcgSharedValues*>(pvParameters);
   Serial.printf("[ECG Task] Running on core %d\n", xPortGetCoreID());
 
@@ -74,7 +75,10 @@ void TaskECG(void* pvParameters) {
       }
       ecg_batch.ecg_samples[batch_index++] = converted_sample;
       if (batch_index >= ECG_BATCH_SIZE) {
-        ecg_batch.timestamp = xTaskGetTickCount() * portTICK_PERIOD_MS;  // Timestamp for charting
+        if (baseTime == 0) {
+          baseTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        }
+        ecg_batch.timestamp = (xTaskGetTickCount() * portTICK_PERIOD_MS) - baseTime;
         if(deviceConnected){
           if (xQueueSend(ble_queue, &ecg_batch, 0) != pdTRUE) {
             Serial.println("ECG queue full! Dropping batch.");
