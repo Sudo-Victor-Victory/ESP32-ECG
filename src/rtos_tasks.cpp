@@ -54,9 +54,10 @@ void TaskECG(void* pvParameters) {
   ECGDataBatch ecg_batch;
 
   while (true) {
+    vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
     int lo_plus_val = digitalRead(shared->lo_plus);
     int lo_minus_val = digitalRead(shared->lo_minus);
-
     if (lo_plus_val == HIGH || lo_minus_val == HIGH) {
       Serial.printf("Lead detection failure: LO+ %d and LO- %d\n", lo_plus_val, lo_minus_val);
       vTaskDelay(pdMS_TO_TICKS(5)); // Avoid using delay in RTOS. Use any vTaskDelay
@@ -69,7 +70,6 @@ void TaskECG(void* pvParameters) {
       uint16_t converted_sample = (uint16_t)round(kalman_ecg);
       if (millis() - last_print >= print_delay) {
         Serial.printf(">kalmanVal:%.2f\n", kalman_ecg);
-        Serial.printf(">convertedSample:%u\n", converted_sample);
         last_print = millis();
       }
       ecg_batch.ecg_samples[batch_index++] = converted_sample;
@@ -80,17 +80,8 @@ void TaskECG(void* pvParameters) {
             Serial.println("ECG queue full! Dropping batch.");
           }
         }
-        else {
-          Serial.println("[ECG Task] No device connected. Will store the data (IMPLEMENT LATER)");
-          // Call some function to save the ECG data to a form of persistent storage.
-          // NOTE: 100 is too much. Will cause an unpaired ecg to look laggy on serial monitor.
-          // Find a different val than 100.
-          vTaskDelay(pdMS_TO_TICKS(100)); 
-        }
         batch_index = 0;
       }
     }
-
-    vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
 }
