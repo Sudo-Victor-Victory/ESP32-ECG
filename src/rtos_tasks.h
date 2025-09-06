@@ -5,21 +5,23 @@
 
 #define QUEUE_LENGTH 100   // Max number of samples stored in queue
 #define QUEUE_ITEM_SIZE sizeof(ECGDataBatch)  // Storing each ECG sample as uint16_t
-#define ECG_BATCH_SIZE 10
+#define ECG_BATCH_SIZE 10  // Max # of batches in ecg_samples
 
 extern TaskHandle_t TaskECGHandle;
 extern TaskHandle_t TaskBLEHandle;
-extern volatile unsigned long currentMillis;
 extern QueueHandle_t ble_queue;
 
 // 10 samples (20 bytes) + timestamp (4 bytes) = 24 bytes
+// bpm (2 bytes) + another 2 bytes from compiler buffing = 28 bytes
 struct ECGDataBatch  {
-    uint16_t ecg_samples[10];
+    uint16_t ecg_samples[ECG_BATCH_SIZE];
     uint32_t timestamp;
+    uint16_t bpm;
 };
 
 void TaskBLE(void* pvParameters);
 void TaskECG(void* pvParameters);
 
+uint16_t detectPBM_batch(const ECGDataBatch& myBatch);
 void startTasks(EcgSharedValues* sharedValues);  // start both ECG + BLE tasks
 #endif
