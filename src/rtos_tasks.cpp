@@ -56,10 +56,12 @@ void TaskBLE(void* pvParameters) {
   }
 }
 
+// Calculates BPM from a batch. 
 uint16_t detectBPM_batch(const ECGDataBatch& my_batch) {
   // Find max sample + index
   uint16_t max_sample = 0;
   int max_index = 0;
+  // Finds index of largest sample (presumably will be R)
   for (int i = 0; i < ECG_BATCH_SIZE; i++) {
     if (my_batch.ecg_samples[i] > max_sample) {
       max_sample = my_batch.ecg_samples[i];
@@ -67,19 +69,24 @@ uint16_t detectBPM_batch(const ECGDataBatch& my_batch) {
     }
   }
 
-  // Estimate peak time in ms
+  // Receives the timestamp of the largest sample's value
   unsigned long peak_time =
       my_batch.timestamp - (ECG_BATCH_SIZE - 1 - max_index) * 4;
   uint16_t bpm = last_bpm;  // fallback to last known BPM
 
   // Check if this is a valid R-peak (threshold + refractory)
   if (max_sample > R_THRESHOLD) {
+    // R-R is used to determine BPM
     unsigned long rr_interval = peak_time - last_r_peak_time;
-    // Avoids high BPMs from timer issue. Rare.
+    // Keeps BPM detection to reasonable MS timeframe. 
     if (rr_interval > 300 && rr_interval < 2000) {
+      // 60,000 is # of milliseconds in a minute.
+      // Divide by RR interval (ms) to compute BPM
       bpm = 60000 / rr_interval;
       bpm_history[bpm_index] = bpm;
       bpm_index = (bpm_index + 1) % BPM_HISTORY_SIZE;
+      // Weights attached to smooth out the BPM. 
+      // Its like a mini Kalman <3 
       last_bpm = (last_bpm * 0.4) + (bpm * 0.6);
       last_r_peak_time = peak_time;
     }
